@@ -1,0 +1,4 @@
+# Ignore all files without an extension in any folder
+**/q[0-9]*
+!**/*.c
+!**/*.txt
