@@ -1,3 +1,5 @@
+// WARNING: Don't know if the solution is correct
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -79,38 +81,69 @@ void insert_at_end(linked_list *list, node *newNode)
 void delete_at_start(linked_list *list)
 {
     pthread_mutex_lock(&list->lock);
-    node *head = &list->head;
-    if (head == NULL)
+    node *temp = list->head;
+    if (temp == NULL)
     {
         pthread_mutex_unlock(&list->lock);
         return;
     }
 
-    head = &head->next;
+    list->head = temp->next;
+    pthread_mutex_unlock(&list->lock);
 
-    free(head);
+    free(temp);
 }
 
 void delete_at_end(linked_list *list, node *newNode)
 {
-    node *curr = list->head;
+    node *curr;
+    pthread_mutex_lock(&list->lock);
+    curr = list->head;
+    if (curr == NULL)
+    {
+        pthread_mutex_unlock(&list->lock);
+        return;
+    }
+
+    if (curr->next == NULL)
+    {
+        list->head = NULL;
+        free(curr);
+        pthread_mutex_unlock(&list->lock);
+        return;
+    }
+
+    node *prev = curr;
+    pthread_mutex_lock(&curr->next->lock);
+    curr = curr->next;
+    pthread_mutex_unlock(&list->lock);
+
     while (curr->next != NULL)
     {
+        pthread_mutex_lock(&curr->next->lock);
+        pthread_mutex_unlock(&prev->lock);
+        prev = curr;
         curr = curr->next;
     }
+    prev->next = NULL; // curr is unreachable (non-sharing) after this
+
+    pthread_mutex_unlock(&curr->lock);
+    pthread_mutex_unlock(&prev->lock);
+
     free(curr);
 }
-void display_list(linked_list *list)
-{
-    node *currNode = list->head;
 
-    while (currNode != NULL)
-        while (currNode != NULL)
-        {
-            printf("Current Node %p: %d\n", currNode, currNode->value);
-            currNode = currNode->next;
-        }
-}
+// void display_list(linked_list *list)
+// {
+//     node *currNode = list->head;
+
+//     while (currNode != NULL)
+//         while (currNode != NULL)
+//         {
+//             printf("Current Node %p: %d\n", currNode, currNode->value);
+//             currNode = currNode->next;
+//         }
+// }
 
 int main()
 {
