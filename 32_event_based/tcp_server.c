@@ -6,19 +6,36 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <string.h>
+#include <signal.h>
 
 #define PORT 8080
 #define MAX_MESSAGE_SIZE 100
 
+int server_socket;
+
+void sigint_handler(int sig)
+{
+    close(server_socket);
+    printf("Caught signal %d (SIGINT). Exiting gracefully...\n", sig);
+    exit(EXIT_SUCCESS);
+}
+
 int main()
 {
-    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
     struct sockaddr_in server_sockaddr_in; // Changed from pointer to struct
 
     server_sockaddr_in.sin_port = htons(PORT);                   // port number
     server_sockaddr_in.sin_family = AF_INET;                     // IPV4
     server_sockaddr_in.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // Listen to localhost only
+
+    if (signal(SIGINT, sigint_handler) == SIG_ERR)
+    {
+        perror("Failed to register signal handler");
+        return EXIT_FAILURE;
+    }
 
     if (bind(server_socket, (struct sockaddr *)&server_sockaddr_in, sizeof(server_sockaddr_in)) < 0)
     {
